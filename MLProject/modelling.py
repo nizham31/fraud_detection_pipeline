@@ -12,15 +12,18 @@ load_dotenv()
 
 tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 if not tracking_uri:
-    raise ValueError("MLFLOW_TRACKING_URI tidak ditemukan di file .env")
+    print("WARNING: MLFLOW_TRACKING_URI tidak ditemukan. Cek .env atau Secrets.")
 
-mlflow.set_tracking_uri(tracking_uri)
+# Set MLflow
+if tracking_uri:
+    mlflow.set_tracking_uri(tracking_uri)
+
 mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
-# LOAD DATAA
+# 2. LOAD DATA
 def load_data():
-    
     print("Loading processed data...")
+    # Path relative terhadap script ini (di dalam folder MLProject)
     train_df = pd.read_csv('data_clean/train_data.csv')
     test_df = pd.read_csv('data_clean/test_data.csv')
 
@@ -31,41 +34,33 @@ def load_data():
 
     return X_train, y_train, X_test, y_test
 
-
-# TRAIN MODEL
-
+# 3. TRAIN MODEL 
 def train_model(X_train, y_train):
-    print("Training model without hyperparameter tuning.....")
+    print("Training model without hyperparameter tuning...")
 
-    model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=None,
-        min_samples_split=2,
-        random_state=42,
-        class_weight='balanced'
-    )
-
-    model.fit(X_train, y_train)
-
-    best_params = {
+    # Parameter dari eksperimen sebelumnya 
+    params = {
         "n_estimators": 100,
         "max_depth": None,
-        "min_samples_split": 2
+        "min_samples_split": 2,
+        "random_state": 42,
+        "class_weight": "balanced"
     }
 
-    return model, best_params
+    model = RandomForestClassifier(**params)
+    model.fit(X_train, y_train)
 
+    return model, params
 
-# EVALUATE & LOG
+# 4. EVALUATE & LOG
 def evaluate_and_log(model, best_params, X_test, y_test):
     print("Logging to MLflow...")
 
     with mlflow.start_run():
-
+        # Log Parameters
         mlflow.log_params(best_params)
         mlflow.log_param("model_type", "RandomForest")
         mlflow.log_param("class_weight", "balanced")
-        mlflow.log_param("tuning_method", "none")
         mlflow.log_param("environment", "DagsHub MLflow Tracking")
 
         # Predict
@@ -84,10 +79,13 @@ def evaluate_and_log(model, best_params, X_test, y_test):
 
         print(f"Metrics - F1: {f1:.4f}, Recall: {rec:.4f}")
 
-        # Log model
-        mlflow.sklearn.log_model(model, "model")
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            registered_model_name="CreditCard_Fraud_Model" 
+        )
 
-        # Artifact 1: Confusion Matrix
+        # Artifact Confusion Matrix
         plt.figure(figsize=(6,5))
         cm = confusion_matrix(y_test, y_pred)
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
@@ -96,15 +94,7 @@ def evaluate_and_log(model, best_params, X_test, y_test):
         mlflow.log_artifact("confusion_matrix.png")
         plt.close()
 
-        # Register the model
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            registered_model_name="CreditCard_Fraud_Model"
-        )
-        
-        
-        # Artifact 2: Feature Importance
+        # Artifact Feature Importance
         if hasattr(model, 'feature_importances_'):
             plt.figure(figsize=(10,6))
             feat_importances = pd.Series(model.feature_importances_, index=X_test.columns)
@@ -117,7 +107,7 @@ def evaluate_and_log(model, best_params, X_test, y_test):
 
         print("Artifacts uploaded to MLflow/DagsHub")
 
-# MAIN
+# MAIN EXECUTION
 if __name__ == "__main__":
     X_train, y_train, X_test, y_test = load_data()
     model, best_params = train_model(X_train, y_train)
