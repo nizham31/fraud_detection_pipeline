@@ -21,8 +21,8 @@ mlflow.set_experiment("CreditCard_Fraud_Detection_Experiment")
 
 def load_data():
     print("Loading processed data...")
-    train_df = pd.read_csv('../preprocessing/data_clean/train_data.csv')
-    test_df = pd.read_csv('../preprocessing/data_clean/test_data.csv')
+    train_df = pd.read_csv('data_clean/train_data.csv')
+    test_df = pd.read_csv('data_clean/test_data.csv')
 
     X_train = train_df.drop('Class', axis=1)
     y_train = train_df['Class']

@@ -25,7 +25,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip install mlflow dagshub pandas scikit-learn python-dotenv
+        pip install mlflow dagshub pandas scikit-learn python-dotenv matplotlib seaborn joblib
 
     - name: Retrain Model
       id: training
