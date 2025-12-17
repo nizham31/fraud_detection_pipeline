@@ -15,7 +15,7 @@ if not tracking_uri:
     raise ValueError("MLFLOW_TRACKING_URI tidak ditemukan di file .env")
 
 mlflow.set_tracking_uri(tracking_uri)
-mlflow.set_experiment("CreditCard_Fraud_Detection_Experiment")
+mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
 # LOAD DATAA
 def load_data():
