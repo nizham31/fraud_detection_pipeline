@@ -17,7 +17,7 @@ if not tracking_uri:
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("CreditCard_Fraud_Detection_Experiment")
 
-# LOAD DATA
+
 
 def load_data():
     print("Loading processed data...")
@@ -35,7 +35,7 @@ def load_data():
 # TRAIN MODEL
 
 def train_model(X_train, y_train):
-    print("Training model without hyperparameter tuning...")
+    print("Training model without hyperparameter tuning.....")
 
     model = RandomForestClassifier(
         n_estimators=100,
