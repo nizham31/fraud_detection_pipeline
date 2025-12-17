@@ -23,9 +23,10 @@ jobs:
       with:
         python-version: '3.9'
 
+    # PERBAIKAN 1: Menambahkan boto3 (WAJIB untuk DagsHub/S3)
     - name: Install Dependencies
       run: |
-        pip install mlflow dagshub pandas scikit-learn python-dotenv matplotlib seaborn joblib
+        pip install mlflow dagshub pandas scikit-learn python-dotenv matplotlib seaborn joblib boto3
 
     - name: Retrain Model
       id: training
@@ -62,6 +63,9 @@ jobs:
         DOCKER_REPO: ${{ secrets.DOCKER_USERNAME }}/fraud-detection-model
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
+        
+        # PERBAIKAN 2: Tambah jeda 60 detik agar artifact DagsHub siap didownload
+        sleep 60
         
         # Build Docker Image dari MLflow
         mlflow models build-docker \
