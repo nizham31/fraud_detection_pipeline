@@ -17,7 +17,7 @@ if not tracking_uri:
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
-# LOAD DATAA
+# LOAD DATA
 def load_data():
     
     print("Loading processed data...")
