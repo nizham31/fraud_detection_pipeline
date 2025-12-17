@@ -96,6 +96,13 @@ def evaluate_and_log(model, best_params, X_test, y_test):
         mlflow.log_artifact("confusion_matrix.png")
         plt.close()
 
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            registered_model_name="CreditCard_Fraud_Model"
+        )
+        
+        
         # Artifact 2: Feature Importance
         if hasattr(model, 'feature_importances_'):
             plt.figure(figsize=(10,6))
