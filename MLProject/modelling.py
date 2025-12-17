@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
+# 1. SETUP MLFLOW TRACKING
 load_dotenv()
 
 tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
