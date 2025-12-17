@@ -23,7 +23,7 @@ jobs:
       with:
         python-version: '3.9'
 
-    # PERBAIKAN UTAMA: Downgrade MLflow ke <3.0 agar kompatibel dengan DagsHub
+    # Downgrade MLflow ke 
     - name: Install Dependencies
       run: |
         pip install "mlflow<3.0" dagshub pandas scikit-learn python-dotenv matplotlib seaborn joblib boto3
