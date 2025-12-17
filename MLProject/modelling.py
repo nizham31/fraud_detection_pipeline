@@ -96,6 +96,7 @@ def evaluate_and_log(model, best_params, X_test, y_test):
         mlflow.log_artifact("confusion_matrix.png")
         plt.close()
 
+        # Register the model
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path="model",
