@@ -6,7 +6,6 @@ on:
       - 'MLProject/**' 
 
 env:
-  # Nanti set Secrets ini di Repo yang BARU ya!
   MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
   MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
   MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
@@ -30,7 +29,7 @@ jobs:
 
     - name: Retrain Model
       id: training
-      working-directory: MLProject  # <--- HANYA MLProject (tanpa Workflow-CI/)
+      working-directory: MLProject 
       run: |
         # Jalankan modelling.py
         python modelling.py
@@ -41,7 +40,6 @@ jobs:
         import os
         from mlflow.tracking import MlflowClient
         
-        # Load env vars manually if needed, or rely on env vars injected by GitHub Actions
         client = MlflowClient()
         experiment = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
         runs = client.search_runs(experiment.experiment_id, order_by=['start_time DESC'], max_results=1)
@@ -74,4 +72,4 @@ jobs:
         # Push ke Docker Hub
         docker push "$DOCKER_REPO:latest"
         
-        echo "✅ Docker Image Pushed Successfully!"
+        echo "Docker Image Pushed Successfully!"
