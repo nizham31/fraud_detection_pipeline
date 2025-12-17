@@ -17,8 +17,9 @@ if not tracking_uri:
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("CreditCard_Fraud_Detection_Experiment")
 
-# LOAD DATAA
+# LOAD DATA
 def load_data():
+    
     print("Loading processed data...")
     train_df = pd.read_csv('data_clean/train_data.csv')
     test_df = pd.read_csv('data_clean/test_data.csv')
