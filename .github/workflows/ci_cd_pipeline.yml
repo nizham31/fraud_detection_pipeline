@@ -1,0 +1,77 @@
+name: CI/CD Pipeline - Train & Build Docker
+
+on:
+  push:
+    paths:
+      - 'MLProject/**' 
+
+env:
+  # Nanti set Secrets ini di Repo yang BARU ya!
+  MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+  MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+
+jobs:
+  train-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install mlflow dagshub pandas scikit-learn python-dotenv
+
+    - name: Retrain Model
+      id: training
+      working-directory: MLProject  # <--- HANYA MLProject (tanpa Workflow-CI/)
+      run: |
+        # Jalankan modelling.py
+        python modelling.py
+        
+        # Ambil Run ID terakhir
+        python -c "
+        import mlflow
+        import os
+        from mlflow.tracking import MlflowClient
+        
+        # Load env vars manually if needed, or rely on env vars injected by GitHub Actions
+        client = MlflowClient()
+        experiment = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
+        runs = client.search_runs(experiment.experiment_id, order_by=['start_time DESC'], max_results=1)
+        latest_run_id = runs[0].info.run_id
+        print(f'Latest Run ID: {latest_run_id}')
+        
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+            print(f'run_id={latest_run_id}', file=fh)
+        " 
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      env:
+        RUN_ID: ${{ steps.training.outputs.run_id }}
+        DOCKER_REPO: ${{ secrets.DOCKER_USERNAME }}/fraud-detection-model
+      run: |
+        echo "Building Docker Image for Run ID: $RUN_ID"
+        
+        # Build Docker Image dari MLflow
+        mlflow models build-docker \
+          -m "runs:/$RUN_ID/model" \
+          -n "$DOCKER_REPO:latest" \
+          --enable-mlserver
+        
+        # Push ke Docker Hub
+        docker push "$DOCKER_REPO:latest"
+        
+        echo "✅ Docker Image Pushed Successfully!"
