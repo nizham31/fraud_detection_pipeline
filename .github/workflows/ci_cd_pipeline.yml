@@ -35,7 +35,12 @@ jobs:
       run: |
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
         EXP_ID=$(mlflow experiments get -n "CreditCard_Fraud_Detection_Production" | grep "Experiment ID" | awk '{print $3}')
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXP_ID | head -n 3 | tail -n 1 | awk '{print $1}')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXP_ID | grep -v "Run ID" | grep -v "\-" | head -n 1 | awk '{print $1}')        
+        
+        if [ -z "$LATEST_RUN_ID" ]; then
+          echo "ERROR: Run ID tidak ditemukan!"
+          exit 1
+        fi
         
         echo "Latest Run ID: $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
