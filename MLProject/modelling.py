@@ -4,16 +4,17 @@ import seaborn as sns
 import mlflow
 import mlflow.sklearn
 import os
+import shutil
 from dotenv import load_dotenv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
-# 1. SETUP 
+
 load_dotenv()
 
 tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 if not tracking_uri:
-    print("WARNING: MLFLOW_TRACKING_URI tidak ditemukan. Cek .env atau Secrets.")
+    print("WARNING: MLFLOW_TRACKING_URI tidak ditemukan. Pastikan Secrets sudah diatur.")
 
 if tracking_uri:
     mlflow.set_tracking_uri(tracking_uri)
@@ -22,9 +23,9 @@ mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
 mlflow.sklearn.autolog(log_models=True)
 
-# 2. Load Data
+# 2. LOAD DATA
 def load_data():
-    print("Loading processed data...")
+    print("Loading processed data dari folder data_clean...")
     train_df = pd.read_csv('data_clean/train_data.csv')
     test_df = pd.read_csv('data_clean/test_data.csv')
 
@@ -37,8 +38,8 @@ def load_data():
 
 # 3. TRAIN MODEL 
 def train_model(X_train, y_train):
-    print("Training model with Autologging...")
-
+    print("Training model RandomForest dengan Autologging...")
+    
     params = {
         "n_estimators": 100,
         "max_depth": None,
@@ -46,24 +47,28 @@ def train_model(X_train, y_train):
         "random_state": 42,
         "class_weight": "balanced"
     }
-
+    
     model = RandomForestClassifier(**params)
     model.fit(X_train, y_train)
-
     return model, params
 
-# 4. EVALUATE & LOG ARTIFACTS
 def evaluate_and_log(model, X_test, y_test):
-    print("Logging custom artifacts to MLflow...")
+    print("Mengevaluasi model dan mengekspor ke folder lokal...")
 
     with mlflow.start_run(run_name="Manual_Evaluation_Artifacts", nested=True):
         y_pred = model.predict(X_test)
-
+        
         f1 = f1_score(y_test, y_pred)
         rec = recall_score(y_test, y_pred)
-        print(f"Metrics - F1: {f1:.4f}, Recall: {rec:.4f}")
+        print(f"Hasil Evaluasi - F1: {f1:.4f}, Recall: {rec:.4f}")
 
-        # Artifact Confusion Matrix
+        export_path = "exported_model"
+        if os.path.exists(export_path):
+            shutil.rmtree(export_path) 
+        
+        print(f"Menyimpan model ke folder lokal: {export_path}...")
+        mlflow.sklearn.save_model(sk_model=model, path=export_path)
+
         plt.figure(figsize=(6,5))
         cm = confusion_matrix(y_test, y_pred)
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
@@ -72,7 +77,7 @@ def evaluate_and_log(model, X_test, y_test):
         mlflow.log_artifact("confusion_matrix.png")
         plt.close()
 
-        # Artifact Feature Importance
+        # Membuat Visualisasi Feature Importance
         if hasattr(model, 'feature_importances_'):
             plt.figure(figsize=(10,6))
             feat_importances = pd.Series(model.feature_importances_, index=X_test.columns)
@@ -83,7 +88,7 @@ def evaluate_and_log(model, X_test, y_test):
             mlflow.log_artifact("feature_importance.png")
             plt.close()
 
-        print("Autologging complete & Artifacts uploaded to MLflow/DagsHub")
+        print("Proses Autologging dan Ekspor Lokal Selesai.")
 
 if __name__ == "__main__":
     X_train, y_train, X_test, y_test = load_data()
