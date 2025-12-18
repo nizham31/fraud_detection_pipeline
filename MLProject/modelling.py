@@ -63,11 +63,11 @@ def evaluate_and_log(model, X_test, y_test):
         rec = recall_score(y_test, y_pred)
         print(f"Metrics - F1: {f1:.4f}, Recall: {rec:.4f}")
 
-        mlflow.sklearn.log_model(
-            sk_model=model,
-            artifact_path="model",
-            registered_model_name="CreditCard_Fraud_Model" 
-        )
+        #mlflow.sklearn.log_model(
+        #    sk_model=model,
+        #    artifact_path="model",
+        #    registered_model_name="CreditCard_Fraud_Model" 
+        #)
 
         # Artifact Confusion Matrix
         plt.figure(figsize=(6,5))
