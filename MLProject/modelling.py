@@ -21,10 +21,11 @@ if tracking_uri:
 
 mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
+mlflow.sklearn.autolog(log_models=True)
+
 # 2. LOAD DATA
 def load_data():
     print("Loading processed data...")
-    # Path relative terhadap script ini (di dalam folder MLProject)
     train_df = pd.read_csv('data_clean/train_data.csv')
     test_df = pd.read_csv('data_clean/test_data.csv')
 
@@ -37,9 +38,8 @@ def load_data():
 
 # 3. TRAIN MODEL 
 def train_model(X_train, y_train):
-    print("Training model without hyperparameter tuning...")
+    print("Training model with Autologging...")
 
-    # Parameter dari eksperimen sebelumnya 
     params = {
         "n_estimators": 100,
         "max_depth": None,
@@ -53,31 +53,15 @@ def train_model(X_train, y_train):
 
     return model, params
 
-# 4. EVALUATE & LOG
-def evaluate_and_log(model, best_params, X_test, y_test):
-    print("Logging to MLflow...")
+# 4. EVALUATE & LOG CUSTOM ARTIFACTS
+def evaluate_and_log(model, X_test, y_test):
+    print("Logging custom artifacts to MLflow...")
 
-    with mlflow.start_run():
-        # Log Parameters
-        mlflow.log_params(best_params)
-        mlflow.log_param("model_type", "RandomForest")
-        mlflow.log_param("class_weight", "balanced")
-        mlflow.log_param("environment", "DagsHub MLflow Tracking")
-
-        # Predict
+    with mlflow.start_run(run_name="Manual_Evaluation_Artifacts", nested=True):
         y_pred = model.predict(X_test)
 
-        # Metrics
-        acc = accuracy_score(y_test, y_pred)
-        prec = precision_score(y_test, y_pred)
-        rec = recall_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred)
-
-        mlflow.log_metric("accuracy", acc)
-        mlflow.log_metric("precision", prec)
-        mlflow.log_metric("recall", rec)
-        mlflow.log_metric("f1_score", f1)
-
+        rec = recall_score(y_test, y_pred)
         print(f"Metrics - F1: {f1:.4f}, Recall: {rec:.4f}")
 
         mlflow.sklearn.log_model(
@@ -106,10 +90,9 @@ def evaluate_and_log(model, best_params, X_test, y_test):
             mlflow.log_artifact("feature_importance.png")
             plt.close()
 
-        print("Artifacts uploaded to MLflow/DagsHub")
+        print("Autologging complete & Artifacts uploaded to MLflow/DagsHub")
 
-# MAIN EXECUTION
 if __name__ == "__main__":
     X_train, y_train, X_test, y_test = load_data()
-    model, best_params = train_model(X_train, y_train)
-    evaluate_and_log(model, best_params, X_test, y_test)
+    model, params = train_model(X_train, y_train)
+    evaluate_and_log(model, X_test, y_test)
