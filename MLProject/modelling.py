@@ -8,13 +8,13 @@ from dotenv import load_dotenv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
+# 1. SETUP MLFLOW 
 load_dotenv()
 
 tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 if not tracking_uri:
     print("WARNING: MLFLOW_TRACKING_URI tidak ditemukan. Cek .env atau Secrets.")
 
-# 1. set MLflow 
 if tracking_uri:
     mlflow.set_tracking_uri(tracking_uri)
 
@@ -22,7 +22,7 @@ mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
 mlflow.sklearn.autolog(log_models=True)
 
-# 2. Load Data
+# 2. LOAD DATA
 def load_data():
     print("Loading processed data...")
     train_df = pd.read_csv('data_clean/train_data.csv')
@@ -62,12 +62,6 @@ def evaluate_and_log(model, X_test, y_test):
         f1 = f1_score(y_test, y_pred)
         rec = recall_score(y_test, y_pred)
         print(f"Metrics - F1: {f1:.4f}, Recall: {rec:.4f}")
-
-        #mlflow.sklearn.log_model(
-        #    sk_model=model,
-        #    artifact_path="model",
-        #    registered_model_name="CreditCard_Fraud_Model" 
-        #)
 
         # Artifact Confusion Matrix
         plt.figure(figsize=(6,5))
