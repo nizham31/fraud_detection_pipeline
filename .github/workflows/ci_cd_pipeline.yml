@@ -34,15 +34,25 @@ jobs:
       id: training
       run: |
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
-        EXP_ID=$(mlflow experiments get -n "CreditCard_Fraud_Detection_Production" | grep "Experiment ID" | awk '{print $3}')
-        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXP_ID | grep -v "Run ID" | grep -v "\-" | head -n 1 | awk '{print $1}')        
+        
+        LATEST_RUN_ID=$(python -c "
+        import mlflow
+        client = mlflow.tracking.MlflowClient()
+        try:
+            exp = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
+            runs = client.search_runs(exp.experiment_id, order_by=['start_time DESC'], max_results=1)
+            print(runs[0].info.run_id)
+        except Exception as e:
+            print(f'Error: {e}')
+            exit(1)
+        ")
         
         if [ -z "$LATEST_RUN_ID" ]; then
           echo "ERROR: Run ID tidak ditemukan!"
           exit 1
         fi
-        
-        echo "Latest Run ID: $LATEST_RUN_ID"
+
+        echo "Latest Run ID ditemukan: $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
         
     - name: Login to Docker Hub
