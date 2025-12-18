@@ -38,11 +38,13 @@ jobs:
         
         PYTHON_EXE="${{ steps.setup-python.outputs.python-path }}"
         
+        # Ambil Run ID utama
         LATEST_RUN_ID=$($PYTHON_EXE -c "
         import mlflow
         client = mlflow.tracking.MlflowClient()
         try:
             exp = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
+            # Filter agar tidak mengambil nested run 'Manual_Evaluation_Artifacts'
             runs = client.search_runs(
                 experiment_ids=[exp.experiment_id],
                 filter_string='attributes.run_name != \"Manual_Evaluation_Artifacts\"',
@@ -55,7 +57,7 @@ jobs:
             import sys; sys.exit(1)
         ")
         
-        echo "Latest Run ID (Parent): $LATEST_RUN_ID"
+        echo "Latest Parent Run ID: $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
         
     - name: Login to Docker Hub
@@ -71,10 +73,19 @@ jobs:
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
         
-        sleep 60
+        LOCAL_MODEL_PATH=$(find MLProject/mlruns -name "model" -type d | grep "$RUN_ID" | head -n 1)
         
+        if [ -n "$LOCAL_MODEL_PATH" ]; then
+          echo "Menggunakan model lokal yang ditemukan di: $LOCAL_MODEL_PATH"
+          MODEL_URI=$LOCAL_MODEL_PATH
+        else
+          echo "Model lokal tidak ditemukan, mencoba fallback ke remote URI..."
+          MODEL_URI="runs:/$RUN_ID/model"
+        fi
+        
+        # Build Docker Image
         mlflow models build-docker \
-          -m "runs:/$RUN_ID/model" \
+          -m "$MODEL_URI" \
           -n "$DOCKER_REPO:latest" \
           --enable-mlserver
         
