@@ -43,19 +43,19 @@ jobs:
         client = mlflow.tracking.MlflowClient()
         try:
             exp = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
-            runs = client.search_runs(exp.experiment_id, order_by=['start_time DESC'], max_results=1)
+            runs = client.search_runs(
+                experiment_ids=[exp.experiment_id],
+                filter_string='attributes.run_name != \"Manual_Evaluation_Artifacts\"',
+                order_by=['start_time DESC'],
+                max_results=1
+            )
             print(runs[0].info.run_id)
         except Exception as e:
             print(f'Error: {e}')
             import sys; sys.exit(1)
         ")
         
-        if [ -z "$LATEST_RUN_ID" ]; then
-          echo "ERROR: Run ID tidak ditemukan!"
-          exit 1
-        fi
-
-        echo "Latest Run ID ditemukan: $LATEST_RUN_ID"
+        echo "Latest Run ID (Parent): $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
         
     - name: Login to Docker Hub
