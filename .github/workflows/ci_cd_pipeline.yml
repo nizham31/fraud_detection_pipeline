@@ -34,11 +34,12 @@ jobs:
     - name: Retrain Model with MLflow Project
       id: training
       run: |
+        # Jalankan training standar
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
         
         PYTHON_EXE="${{ steps.setup-python.outputs.python-path }}"
         
-        # Ambil Run ID utama
+        # Ambil Run ID utama (bukan yang evaluasi manual)
         LATEST_RUN_ID=$($PYTHON_EXE -c "
         import mlflow
         client = mlflow.tracking.MlflowClient()
@@ -73,13 +74,22 @@ jobs:
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
         
-        LOCAL_MODEL_PATH=$(find MLProject/mlruns -name "model" -type d | grep "$RUN_ID" | head -n 1)
+        # Jeda waktu untuk memastikan proses penulisan file selesai
+        sleep 10
+        
+        # STRATEGI PENTING: Cari folder model di seluruh direktori kerja
+        # Biasanya mlruns ada di root jika mlflow run dipanggil dari root
+        LOCAL_MODEL_PATH=$(find . -name "model" -type d | grep "$RUN_ID" | head -n 1)
         
         if [ -n "$LOCAL_MODEL_PATH" ]; then
           echo "Menggunakan model lokal yang ditemukan di: $LOCAL_MODEL_PATH"
           MODEL_URI=$LOCAL_MODEL_PATH
         else
-          echo "Model lokal tidak ditemukan, mencoba fallback ke remote URI..."
+          echo "Model lokal tidak ditemukan di path spesifik. Mencari alternatif..."
+          # Debug: tampilkan struktur folder jika gagal
+          ls -R mlruns || echo "Folder mlruns tidak ada di root"
+          
+          echo "Mencoba fallback ke remote URI..."
           MODEL_URI="runs:/$RUN_ID/model"
         fi
         
