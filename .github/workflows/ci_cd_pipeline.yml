@@ -23,18 +23,19 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install Dependencies
+    - name: Install MLflow & Conda
       run: |
-        pip install "mlflow==2.22.0" dagshub pandas scikit-learn python-dotenv matplotlib seaborn joblib boto3
+        pip install "mlflow==2.22.0" dagshub boto3
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        echo "$HOME/miniconda/bin" >> $GITHUB_PATH
 
-    - name: Retrain Model
+    - name: Retrain Model with MLflow Project
       id: training
-      working-directory: MLProject 
       run: |
-        # Jalankan modelling.py
-        python modelling.py
+        mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
         
-        # Ambil Run ID terakhir
+        # Ambil Run ID terakhir menggunakan MLflow Client
         python -c "
         import mlflow
         import os
@@ -62,17 +63,13 @@ jobs:
         DOCKER_REPO: ${{ secrets.DOCKER_USERNAME }}/fraud-detection-model
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
-        
-        # Jeda waktu agar upload DagsHub stabil
         sleep 60
         
-        # Build Docker Image dari MLflow
+        # Build Docker Image tetap menggunakan mlflow models build-docker
         mlflow models build-docker \
           -m "runs:/$RUN_ID/model" \
           -n "$DOCKER_REPO:latest" \
           --enable-mlserver
         
-        # Push ke Docker Hub
         docker push "$DOCKER_REPO:latest"
-        
         echo "Docker Image Pushed Successfully!"
