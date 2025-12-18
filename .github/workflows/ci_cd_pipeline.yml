@@ -34,23 +34,12 @@ jobs:
       id: training
       run: |
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
+        EXP_ID=$(mlflow experiments get -n "CreditCard_Fraud_Detection_Production" | grep "Experiment ID" | awk '{print $3}')
+        LATEST_RUN_ID=$(mlflow runs list --experiment-id $EXP_ID | head -n 3 | tail -n 1 | awk '{print $1}')
         
-        # Ambil Run ID terakhir menggunakan MLflow Client
-        python -c "
-        import mlflow
-        import os
-        from mlflow.tracking import MlflowClient
+        echo "Latest Run ID: $LATEST_RUN_ID"
+        echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
         
-        client = MlflowClient()
-        experiment = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
-        runs = client.search_runs(experiment.experiment_id, order_by=['start_time DESC'], max_results=1)
-        latest_run_id = runs[0].info.run_id
-        print(f'Latest Run ID: {latest_run_id}')
-        
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-            print(f'run_id={latest_run_id}', file=fh)
-        " 
-
     - name: Login to Docker Hub
       uses: docker/login-action@v2
       with:
