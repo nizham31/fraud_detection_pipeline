@@ -22,7 +22,7 @@ mlflow.set_experiment("CreditCard_Fraud_Detection_Production")
 
 mlflow.sklearn.autolog(log_models=True)
 
-# 2. LOAD DATA
+# 2. Load Data
 def load_data():
     print("Loading processed data...")
     train_df = pd.read_csv('data_clean/train_data.csv')
