@@ -52,7 +52,7 @@ def train_model(X_train, y_train):
 
     return model, params
 
-# 4. EVALUATE & LOG CUSTOM ARTIFACTS
+# 4. EVALUATE & LOG ARTIFACTS
 def evaluate_and_log(model, X_test, y_test):
     print("Logging custom artifacts to MLflow...")
 
