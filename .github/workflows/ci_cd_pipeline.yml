@@ -34,18 +34,18 @@ jobs:
     - name: Retrain Model with MLflow Project
       id: training
       run: |
-        # Jalankan training standar
+        # Eksekusi MLflow Project (Akan otomatis memanggil conda.yaml)
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
         
         PYTHON_EXE="${{ steps.setup-python.outputs.python-path }}"
         
-        # Ambil Run ID utama (bukan yang evaluasi manual)
+        # Ambil Run ID utama (Parent Run) menggunakan script Python stabil
         LATEST_RUN_ID=$($PYTHON_EXE -c "
         import mlflow
         client = mlflow.tracking.MlflowClient()
         try:
             exp = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
-            # Filter agar tidak mengambil nested run 'Manual_Evaluation_Artifacts'
+            # Filter agar tidak mengambil nested run evaluasi
             runs = client.search_runs(
                 experiment_ids=[exp.experiment_id],
                 filter_string='attributes.run_name != \"Manual_Evaluation_Artifacts\"',
@@ -54,11 +54,11 @@ jobs:
             )
             print(runs[0].info.run_id)
         except Exception as e:
-            print(f'Error: {e}')
+            print(f'Error fetching run id: {e}')
             import sys; sys.exit(1)
         ")
         
-        echo "Latest Parent Run ID: $LATEST_RUN_ID"
+        echo "Parent Run ID: $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
         
     - name: Login to Docker Hub
@@ -74,26 +74,19 @@ jobs:
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
         
-        # Jeda waktu untuk memastikan proses penulisan file selesai
-        sleep 10
-        
-        # STRATEGI PENTING: Cari folder model di seluruh direktori kerja
-        # Biasanya mlruns ada di root jika mlflow run dipanggil dari root
+        # Cari folder model di seluruh workspace runner GitHub.
+        # Ini menghindari download dari DagsHub (bypass error 500).
         LOCAL_MODEL_PATH=$(find . -name "model" -type d | grep "$RUN_ID" | head -n 1)
         
         if [ -n "$LOCAL_MODEL_PATH" ]; then
-          echo "Menggunakan model lokal yang ditemukan di: $LOCAL_MODEL_PATH"
+          echo "Model ditemukan secara lokal: $LOCAL_MODEL_PATH"
           MODEL_URI=$LOCAL_MODEL_PATH
         else
-          echo "Model lokal tidak ditemukan di path spesifik. Mencari alternatif..."
-          # Debug: tampilkan struktur folder jika gagal
-          ls -R mlruns || echo "Folder mlruns tidak ada di root"
-          
-          echo "Mencoba fallback ke remote URI..."
+          echo "Model lokal tidak ditemukan. Fallback ke remote (berisiko error 500 DagsHub)..."
           MODEL_URI="runs:/$RUN_ID/model"
         fi
         
-        # Build Docker Image
+        # Build Docker Image dari path lokal (jika ketemu) atau remote URI
         mlflow models build-docker \
           -m "$MODEL_URI" \
           -n "$DOCKER_REPO:latest" \
