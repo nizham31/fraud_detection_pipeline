@@ -1,1 +1,1 @@
-https://hub.docker.com/r/nizu31/creditcard-fraud-detection-model
+https://hub.docker.com/r/nizu31/fraud-detection-model/tags
