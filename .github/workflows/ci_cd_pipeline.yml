@@ -34,18 +34,15 @@ jobs:
     - name: Retrain Model with MLflow Project
       id: training
       run: |
-        # Eksekusi MLflow Project (Akan otomatis memanggil conda.yaml)
         mlflow run MLProject/ --experiment-name "CreditCard_Fraud_Detection_Production"
         
         PYTHON_EXE="${{ steps.setup-python.outputs.python-path }}"
         
-        # Ambil Run ID utama (Parent Run) menggunakan script Python stabil
         LATEST_RUN_ID=$($PYTHON_EXE -c "
         import mlflow
         client = mlflow.tracking.MlflowClient()
         try:
             exp = client.get_experiment_by_name('CreditCard_Fraud_Detection_Production')
-            # Filter agar tidak mengambil nested run evaluasi
             runs = client.search_runs(
                 experiment_ids=[exp.experiment_id],
                 filter_string='attributes.run_name != \"Manual_Evaluation_Artifacts\"',
@@ -74,19 +71,19 @@ jobs:
       run: |
         echo "Building Docker Image for Run ID: $RUN_ID"
         
-        # Cari folder model di seluruh workspace runner GitHub.
-        # Ini menghindari download dari DagsHub (bypass error 500).
-        LOCAL_MODEL_PATH=$(find . -name "model" -type d | grep "$RUN_ID" | head -n 1)
+        sleep 5
         
-        if [ -n "$LOCAL_MODEL_PATH" ]; then
-          echo "Model ditemukan secara lokal: $LOCAL_MODEL_PATH"
-          MODEL_URI=$LOCAL_MODEL_PATH
+        LOCAL_MODEL="MLProject/exported_model"
+        
+        if [ -d "$LOCAL_MODEL" ]; then
+          echo "SUCCESS: $LOCAL_MODEL"
+          MODEL_URI=$LOCAL_MODEL
         else
-          echo "Model lokal tidak ditemukan. Fallback ke remote (berisiko error 500 DagsHub)..."
+          echo "WARNING: Folder $LOCAL_MODEL tidak ditemukan. Fallback ke remote (berisiko error 500)..."
           MODEL_URI="runs:/$RUN_ID/model"
         fi
         
-        # Build Docker Image dari path lokal (jika ketemu) atau remote URI
+        # Build Docker Image
         mlflow models build-docker \
           -m "$MODEL_URI" \
           -n "$DOCKER_REPO:latest" \
