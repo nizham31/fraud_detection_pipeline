@@ -14,7 +14,7 @@ tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 if not tracking_uri:
     print("WARNING: MLFLOW_TRACKING_URI tidak ditemukan. Cek .env atau Secrets.")
 
-# 1. Set MLflow 
+# 1. set MLflow 
 if tracking_uri:
     mlflow.set_tracking_uri(tracking_uri)
 
